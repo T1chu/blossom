@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Blossom · Migración del menú</title>
+<style>
+  body { font-family: sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; color: #2b2b2b; }
+  h1 { font-size: 1.4rem; }
+  input { display: block; width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; }
+  button { padding: 10px 24px; background: #3a3a3a; color: #fff; border: none; border-radius: 6px; cursor: pointer; margin-top: 8px; }
+  #log { background: #f0f0f0; padding: 12px; border-radius: 6px; margin-top: 20px; font-size: .85rem; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+</style>
+</head>
+<body>
+<h1>Blossom — Migración del menú a Firestore</h1>
+<p>Herramienta de uso único. Iniciá sesión y migrá los datos.</p>
+
+<div id="loginBox">
+  <input type="text" id="user" placeholder="Usuario">
+  <input type="password" id="pass" placeholder="Contraseña">
+  <button onclick="login()">Iniciar sesión</button>
+</div>
+
+<div id="migrateBox" style="display:none">
+  <p>✅ Sesión iniciada.</p>
+  <button onclick="migrate()">Migrar datos ahora</button>
+</div>
+
+<div id="log"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+// ============================================================
+// MENÚ DE BLOSSOM — se completa cuando Tiziano pase la carta
+// Formato: { name, description, category, price, order }
+// ============================================================
+const MENU_DATA = [
+  // ---------- PANADERÍA ----------
+  { name: "Medialunas", description: "", category: "Panadería", price: 2800, order: 10 },
+  { name: "Medialuna rellena", description: "Con jamón y queso", category: "Panadería", price: 5500, order: 11 },
+  { name: "Croissant", description: "", category: "Panadería", price: 5000, order: 12 },
+  { name: "Croissant rellena", description: "De pastelera y frutillas, o mermelada de frambuesas y pastelera de pistachos", category: "Panadería", price: 9000, order: 13 },
+  { name: "Croissant mediterránea", description: "Jamón crudo, parmesano y huevo poche", category: "Panadería", price: 10500, order: 14 },
+  { name: "Roll de manzana y canela", description: "", category: "Panadería", price: 8000, order: 15 },
+  { name: "Tostadas", description: "Con queso crema y dulce (podés pedirlas con pan nube +1.400)", category: "Panadería", price: 8000, order: 16 },
+  { name: "Rosca trenzada", description: "Rellena de dulce de leche y pastelera", category: "Panadería", price: 10500, order: 17 },
+
+  // ---------- PARA COMPARTIR ----------
+  { name: "Te para dos", description: "2 infusiones (café con leche o té), tostado de miga (jamón y queso), scon de queso caprese, pancakes de avena y banana con frutas, crema, hilos de chocolate y dulce de leche, tibia espuma de naranjas brûlée", category: "Para compartir", price: 46500, order: 20 },
+  { name: "Té Blossom", description: "2 infusiones (café con leche o té), tostado de miga (jamón y queso), avocado toast, croissant rellena con ali oli, jamón crudo y huevo poche, rosca trenzada rellena de pastelera y dulce de leche, torta a elección", category: "Para compartir", price: 58000, order: 21 },
+  { name: "Ronda de mate", description: "Kit de mate 🧉, tostado de miga (jamón y queso), chipas calentitos, alfajorcitos de dulce de leche, budín a elección", category: "Para compartir", price: 36000, order: 22 },
+
+  // ---------- COOKIES & MASITAS ----------
+  { name: "Cookie NY vainilla", description: "Rellena con trocitos de chocolate", category: "Cookies & Masitas", price: 7000, order: 30 },
+  { name: "Cookie NY chocolate", description: "Rellena con dulce de leche", category: "Cookies & Masitas", price: 7000, order: 31 },
+  { name: "Cookie NY red velvet", description: "Rellena con chocolate blanco", category: "Cookies & Masitas", price: 7000, order: 32 },
+  { name: "Brownie bañado en chocolate", description: "", category: "Cookies & Masitas", price: 3500, order: 33 },
+  { name: "Lemonie glaseado", description: "", category: "Cookies & Masitas", price: 3500, order: 34 },
+  { name: "Alfajor de maicena", description: "", category: "Cookies & Masitas", price: 3500, order: 35 },
+  { name: "Macarons", description: "Frambuesa y pistacho, coco y dulce de leche o chocolate", category: "Cookies & Masitas", price: 4000, order: 36 },
+
+  // ---------- BUDINES ----------
+  { name: "Budín de limón y amapolas", description: "Con frutos rojos y crema", category: "Budines", price: 7000, order: 40 },
+  { name: "Budín galés", description: "Como la \"torta galesa\"", category: "Budines", price: 7000, order: 41 },
+
+  // ---------- TENTACIONES ----------
+  { name: "Tibia espuma de naranjas brûlée", description: "Con dip de salsa de chocolate", category: "Tentaciones", price: 9500, order: 50 },
+  { name: "Yoghourt con granola", description: "Con frutas, miel y granola casera", category: "Tentaciones", price: 10500, order: 51 },
+  { name: "Waffle con Nutella", description: "Con crema, frutas e hilos de chocolate", category: "Tentaciones", price: 13000, order: 52 },
+  { name: "French toast", description: "Con frutas, crema, miel y canela", category: "Tentaciones", price: 13000, order: 53 },
+  { name: "Pancakes de banana", description: "Con granola, frutas, crema, dulce de leche e hilos de chocolate", category: "Tentaciones", price: 13000, order: 54 },
+
+  // ---------- TORTAS ----------
+  { name: "Berrie Blossom", description: "Relleno de moras, arándanos y vodka", category: "Tortas", price: 11000, order: 60 },
+  { name: "Pistacho & Frambuesa", description: "Bizcochuelo de pistachos, mousse de chocolate blanco y pistachos con franuí", category: "Tortas", price: 11000, order: 61 },
+  { name: "Cheesecake de frutos rojos", description: "", category: "Tortas", price: 11000, order: 62 },
+  { name: "Tropical", description: "Bizcochuelo de vainilla relleno con dulce de leche, crema, merengue francés y frutillas", category: "Tortas", price: 11000, order: 63 },
+  { name: "Torta tibia de manzanas", description: "", category: "Tortas", price: 11000, order: 64 },
+  { name: "Carrot cake", description: "", category: "Tortas", price: 11000, order: 65 },
+  { name: "Key lime pie", description: "", category: "Tortas", price: 11000, order: 66 },
+  { name: "Lemon pie", description: "", category: "Tortas", price: 11000, order: 67 },
+  { name: "Red velvet", description: "", category: "Tortas", price: 11000, order: 68 },
+  { name: "Rogel", description: "", category: "Tortas", price: 11000, order: 69 },
+  { name: "Chocotorta", description: "", category: "Tortas", price: 11000, order: 70 },
+  { name: "Tentación", description: "Bizcochuelo de chocolate, dulce de leche y choco rallado", category: "Tortas", price: 11000, order: 71 },
+  { name: "Devil's cake", description: "Mousse de chocolate amargo, baño de chocolate", category: "Tortas", price: 11000, order: 72 },
+  { name: "Aconcagua", description: "Brownie, dulce de leche, crema y frutos rojos", category: "Tortas", price: 11000, order: 73 },
+  { name: "Choco-Orange", description: "Húmedo de chocolate con hesperidina, curd de naranja con cascaritas de naranja confitadas y ganache de chocolate", category: "Tortas", price: 11000, order: 74 },
+  { name: "Torta celíaca", description: "Consultar opciones", category: "Tortas", price: 8500, order: 75 },
+
+  // ---------- SALADO ----------
+  { name: "Scon de parmesano", description: "Con dip de queso crema y ciboulette", category: "Salado", price: 8000, order: 80 },
+  { name: "Scon de queso caprese", description: "Relleno con rúcula, tomate y albahaca", category: "Salado", price: 12000, order: 81 },
+  { name: "Avocado toast", description: "Queso crema, huevo revuelto, palta y cherries", category: "Salado", price: 12000, order: 82 },
+  { name: "Italian toast", description: "Con ali oli, jamón crudo, rúcula y parmesano", category: "Salado", price: 12500, order: 83 },
+  { name: "American toast", description: "Con ali oli, huevo revuelto y panceta crocante", category: "Salado", price: 12500, order: 84 },
+
+  // ---------- TOSTADOS ----------
+  { name: "Chipa relleno", description: "Calentito con rúcula, jamón crudo y queso tybo", category: "Tostados", price: 13500, order: 90 },
+  { name: "Tostado de miga", description: "Con jamón y queso (4 triángulos)", category: "Tostados", price: 11000, order: 91 },
+  { name: "Tostado árabe", description: "Con jamón y queso", category: "Tostados", price: 11000, order: 92 },
+  { name: "Tostado árabe caprese", description: "Con queso, tomate, huevo y albahaca (podés pedir con pan nube +1.400)", category: "Tostados", price: 12500, order: 93 },
+
+  // ---------- FOCACCIAS ----------
+  { name: "Focaccia de mortadela", description: "Mortadela de pistachos, mozzarella, rúcula y tomates confitados. Calentita, con ali oli y papas chips", category: "Focaccias", price: 17000, order: 100 },
+  { name: "Focaccia de pollo crispy", description: "Pollo crispy, lechuga, aderezo caesar y parmesano. Calentita, con ali oli y papas chips", category: "Focaccias", price: 17000, order: 101 },
+  { name: "Focaccia de jamón crudo", description: "Jamón crudo, parmesano, rúcula y huevo poche. Calentita, con ali oli y papas chips", category: "Focaccias", price: 17000, order: 102 },
+
+  // ---------- PLATOS ----------
+  { name: "Ensalada italiana", description: "Rúcula, tomates, jamón crudo, olivas negras y parmesano. Con tostaditas y humus", category: "Platos", price: 17000, order: 110 },
+  { name: "Ensalada caesar con pollo", description: "Con tostaditas y humus", category: "Platos", price: 17000, order: 111 },
+  { name: "Fetuccini al brócoli", description: "Con salsa blanca y queso fundido", category: "Platos", price: 17000, order: 112 },
+  { name: "Ñoquis caprese", description: "Con tomate y albahaca", category: "Platos", price: 17000, order: 113 },
+  { name: "Mila & fideos", description: "De pollo con fideos a la manteca y queso", category: "Platos", price: 17000, order: 114 },
+  { name: "Pechuga de pollo grillé", description: "Con ensalada", category: "Platos", price: 17000, order: 115 },
+  { name: "Tarta de pollo y puerro", description: "Con ensalada", category: "Platos", price: 18500, order: 116 },
+  { name: "Wrap de carne", description: "", category: "Platos", price: 18500, order: 117 },
+  { name: "Risotto de hongos", description: "", category: "Platos", price: 18500, order: 118 },
+  { name: "Goulash", description: "", category: "Platos", price: 18500, order: 119 },
+  { name: "Lomo strogonoff", description: "", category: "Platos", price: 18500, order: 120 },
+  { name: "Varenikes", description: "", category: "Platos", price: 18500, order: 121 },
+  { name: "Ejecutivos", description: "Elegí uno de nuestros platos, de martes a viernes de 12 a 15:30. Incluyen tostaditas saborizadas y humus, exprimido o agua, y café", category: "Platos", price: 18500, order: 122 },
+
+  // ---------- CAFÉS ----------
+  { name: "Café chico", description: "Espresso en pocillo", category: "Cafés", price: 3800, order: 130 },
+  { name: "Jarrito", description: "Espresso en jarrito", category: "Cafés", price: 4500, order: 131 },
+  { name: "Café con leche", description: "Shot de espresso con leche emulsionada en taza mediana", category: "Cafés", price: 5800, order: 132 },
+  { name: "Americano", description: "Dos shots de espresso a base de agua en taza mediana", category: "Cafés", price: 5800, order: 133 },
+  { name: "Flat white o cortado doble", description: "Dos shots de espresso, leche emulsionada en taza mediana", category: "Cafés", price: 5800, order: 134 },
+  { name: "Tazón latte", description: "Dos shots de espresso y leche emulsionada", category: "Cafés", price: 6500, order: 135 },
+  { name: "Tazón latte saborizado", description: "Dos shots de espresso, leche emulsionada con caramelo, vainilla, avellana o pistacho", category: "Cafés", price: 7500, order: 136 },
+  { name: "Mocca blanco o negro", description: "Base de chocolate blanco o negro Águila, shot de espresso y leche emulsionada", category: "Cafés", price: 7500, order: 137 },
+  { name: "Submarino", description: "Barrita de chocolate Águila y leche emulsionada", category: "Cafés", price: 7500, order: 138 },
+  { name: "Chocolatada", description: "Leche emulsionada con Nesquik fría o caliente", category: "Cafés", price: 7500, order: 139 },
+  { name: "Iced latte saborizado", description: "Shot de espresso, leche y hielo con caramelo, vainilla, avellana o pistacho", category: "Cafés", price: 7500, order: 140 },
+
+  // ---------- ESPECIALES ----------
+  { name: "Latte Kinder", description: "Shot de espresso, leche emulsionada y barrita Kinder", category: "Especiales", price: 7500, order: 150 },
+  { name: "Capuccino italiano", description: "Shot espresso, leche emulsionada, salsa de chocolate y canela/cacao (opcional)", category: "Especiales", price: 7000, order: 151 },
+  { name: "Capuccino pistacho", description: "Base de salsa de pistacho, shot de espresso, leche emulsionada y crema", category: "Especiales", price: 7500, order: 152 },
+  { name: "Capuccino Nutella", description: "Base de salsa de Nutella, shot de espresso, leche emulsionada, crema y salsa de chocolate", category: "Especiales", price: 7500, order: 153 },
+  { name: "Milkshake", description: "Bebida a base de leche, hielo, crema con dulce de leche o chocolate", category: "Especiales", price: 7500, order: 154 },
+  { name: "Frapuccino", description: "Espresso, leche, crema y hielo", category: "Especiales", price: 7500, order: 155 },
+
+  // ---------- DESAYUNOS ----------
+  { name: "Lo de siempre", description: "Café con leche y dos medialunas (de 7:30 a 11:30 hs)", category: "Desayunos", price: 9500, order: 160 },
+  { name: "Clásico", description: "Infusión, tostadas con queso crema y dulce", category: "Desayunos", price: 11000, order: 161 },
+  { name: "Fit", description: "Infusión, yoghourt con granola y frutas", category: "Desayunos", price: 12500, order: 162 },
+  { name: "Keto", description: "Infusión, tostados de pan nube con jamón y queso", category: "Desayunos", price: 12500, order: 163 },
+  { name: "Americano (desayuno)", description: "Infusión, huevos revueltos, panceta, rollito de jamón y queso, tostón y queso crema", category: "Desayunos", price: 12500, order: 164 },
+
+  // ---------- TÉS & BLENDS ----------
+  { name: "Black tea", description: "Hebras de puro té negro (¡podés pedirlo frío! 🧊)", category: "Tés & Blends", price: 6000, order: 170 },
+  { name: "Green tea", description: "Hebras de té verde (¡podés pedirlo frío! 🧊)", category: "Tés & Blends", price: 6000, order: 171 },
+  { name: "Earl Grey", description: "Hebras de té negro perfumado con cítricos", category: "Tés & Blends", price: 6000, order: 172 },
+  { name: "Rose Earl Grey", description: "Hebras de té negro y capullos de rosas", category: "Tés & Blends", price: 6000, order: 173 },
+  { name: "Blue Earl Grey", description: "Hebras de té negro y flores de lavanda", category: "Tés & Blends", price: 6000, order: 174 },
+  { name: "Vainilla Tiger", description: "Hebras de té negro con vainilla y caramelo", category: "Tés & Blends", price: 6000, order: 175 },
+  { name: "Strawberry Fields", description: "Té verde con frutillas, arándanos y moras", category: "Tés & Blends", price: 6000, order: 176 },
+
+  // ---------- INFUSIONES ----------
+  { name: "Winter Apple", description: "Manzanas caramelizadas, canela, hibiscus, almendras y rosa mosqueta", category: "Infusiones", price: 6000, order: 180 },
+  { name: "Sophie", description: "Naranjas, bergamota, rosa mosqueta, flores de papaya y manzanas", category: "Infusiones", price: 6000, order: 181 },
+  { name: "Very Berries", description: "Puro frutos rojos: frutillas, grosellas, cerezas negras, arándanos, moras y pétalos de hibiscus", category: "Infusiones", price: 6000, order: 182 },
+  { name: "Positive Energy", description: "Avellanas, higos y ciruelas", category: "Infusiones", price: 6000, order: 183 },
+  { name: "Serenity", description: "Manzanilla, menta y jengibre", category: "Infusiones", price: 6000, order: 184 },
+  { name: "Simple Red", description: "Base de roibos y trocitos de butter toffee", category: "Infusiones", price: 6000, order: 185 },
+
+  // ---------- BEBIDAS ----------
+  { name: "Exprimido de naranja", description: "", category: "Bebidas", price: 6500, order: 190 },
+  { name: "Limo de menta y jengibre", description: "", category: "Bebidas", price: 6500, order: 191 },
+  { name: "Smoothies", description: "Frutos rojos, frutilla y naranja, mango y maracuyá, o banana", category: "Bebidas", price: 7000, order: 192 },
+  { name: "Agua o soda", description: "", category: "Bebidas", price: 4000, order: 193 },
+  { name: "Levité", description: "", category: "Bebidas", price: 5000, order: 194 },
+  { name: "Línea Coca-Cola", description: "", category: "Bebidas", price: 5000, order: 195 },
+
+  // ---------- TRAGOS ----------
+  { name: "Fernet y Coca-Cola", description: "", category: "Tragos", price: 9000, order: 200 },
+  { name: "Gin de frutos rojos", description: "", category: "Tragos", price: 9500, order: 201 },
+  { name: "Campari de naranja", description: "", category: "Tragos", price: 9500, order: 202 },
+  { name: "Aperol con Sprite y naranja", description: "", category: "Tragos", price: 9500, order: 203 },
+  { name: "Porrón de Corona", description: "", category: "Tragos", price: 6000, order: 204 },
+  { name: "Copa de vino Malbec", description: "", category: "Tragos", price: 6000, order: 205 },
+
+  // ---------- ADICIONALES ----------
+  { name: "Pan nube", description: "Adicional para tostadas y tostados", category: "Adicionales", price: 1400, order: 210 },
+  { name: "Adicional crema", description: "", category: "Adicionales", price: 1000, order: 211 },
+  { name: "Leche deslactosada o almendras", description: "", category: "Adicionales", price: 1400, order: 212 },
+];
+
+function log(msg){ document.getElementById('log').textContent += msg + '\n'; }
+
+function login(){
+  auth.signInWithEmailAndPassword(usernameToEmail(document.getElementById('user').value), document.getElementById('pass').value)
+    .then(() => {
+      document.getElementById('loginBox').style.display = 'none';
+      document.getElementById('migrateBox').style.display = 'block';
+    })
+    .catch(e => log('Error de login: ' + e.message));
+}
+
+async function migrate(){
+  if (!MENU_DATA.length) { log('⚠️ MENU_DATA está vacío. Todavía no se cargó el menú en este archivo.'); return; }
+  log('Migrando ' + MENU_DATA.length + ' productos...');
+  for (const item of MENU_DATA) {
+    try {
+      await db.collection('products').add(item);
+      log('✓ ' + item.name);
+    } catch (e) {
+      log('✗ ' + item.name + ' — ' + e.message);
+    }
+  }
+  log('\n¡Listo! Abrí index.html para ver el menú.');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blossom · Casa de Té & Resto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafafa;
+    --bg-alt: #f0f0f0;
+    --surface: #ffffff;
+    --ink: #2b2b2b;
+    --ink-soft: #6e6e6e;
+    --line: #dcdcdc;
+    --accent: #8a8a8a;
+    --dark: #3a3a3a;
+    --shadow: 0 10px 30px rgba(0,0,0,.08);
+    --radius: 14px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Jost', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  h1, h2, h3 { font-family: 'Cormorant Garamond', serif; font-weight: 600; }
+
+  /* ---------- HEADER ---------- */
+  header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px;
+    background: rgba(250,250,250,.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.6rem; letter-spacing: 3px; text-transform: uppercase;
+  }
+  .brand span { color: var(--ink-soft); font-size: .85rem; letter-spacing: 2px; display: block; margin-top: -4px; }
+  nav { display: flex; gap: 26px; align-items: center; }
+  nav a {
+    text-decoration: none; color: var(--ink); font-size: .92rem;
+    letter-spacing: 1.5px; text-transform: uppercase; position: relative;
+  }
+  nav a::after {
+    content: ""; position: absolute; left: 0; bottom: -4px; height: 1px; width: 0;
+    background: var(--ink); transition: width .3s;
+  }
+  nav a:hover::after { width: 100%; }
+
+  /* Botón Admin */
+  #btnAdmin {
+    border: 1px solid var(--ink); background: transparent; color: var(--ink);
+    padding: 8px 22px; border-radius: 30px; cursor: pointer;
+    font-family: 'Jost', sans-serif; font-size: .85rem; letter-spacing: 2px;
+    text-transform: uppercase; transition: all .3s;
+  }
+  #btnAdmin:hover { background: var(--ink); color: #fff; }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    min-height: 92vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    background: linear-gradient(180deg, #f5f5f5 0%, var(--bg) 100%);
+    padding: 120px 20px 60px; position: relative; overflow: hidden;
+  }
+  .hero::before, .hero::after {
+    content: "❀"; position: absolute; font-size: 14rem; color: rgba(0,0,0,.035);
+  }
+  .hero::before { top: 6%; left: -2%; transform: rotate(-15deg); }
+  .hero::after { bottom: 4%; right: -2%; transform: rotate(20deg); }
+  .hero h1 { font-size: clamp(3rem, 8vw, 5.5rem); letter-spacing: 8px; text-transform: uppercase; }
+  .hero .divider { width: 70px; height: 1px; background: var(--ink); margin: 22px auto; }
+  .hero p { color: var(--ink-soft); font-size: 1.1rem; letter-spacing: 3px; text-transform: uppercase; }
+  .hero .cta {
+    margin-top: 44px; display: inline-block; text-decoration: none;
+    border: 1px solid var(--ink); color: var(--ink); padding: 13px 40px;
+    border-radius: 30px; letter-spacing: 2px; text-transform: uppercase;
+    font-size: .9rem; transition: all .3s;
+  }
+  .hero .cta:hover { background: var(--ink); color: #fff; }
+
+  section { padding: 90px 24px; max-width: 1150px; margin: 0 auto; }
+  .section-title { text-align: center; font-size: 2.6rem; letter-spacing: 4px; text-transform: uppercase; }
+  .section-sub { text-align: center; color: var(--ink-soft); margin: 8px 0 50px; letter-spacing: 2px; }
+
+  /* ---------- GALERÍA ---------- */
+  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .gallery img {
+    width: 100%; height: 260px; object-fit: cover; border-radius: var(--radius);
+    filter: grayscale(25%); transition: all .4s; cursor: pointer; display: block;
+  }
+  .gallery img:hover { filter: grayscale(0%); transform: scale(1.02); box-shadow: var(--shadow); }
+  .gallery-empty {
+    grid-column: 1/-1; text-align: center; color: var(--ink-soft);
+    border: 1px dashed var(--line); border-radius: var(--radius); padding: 60px 20px;
+  }
+  /* Lightbox */
+  #lightbox {
+    display: none; position: fixed; inset: 0; z-index: 300;
+    background: rgba(20,20,20,.92); align-items: center; justify-content: center; cursor: pointer;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox img { max-width: 92vw; max-height: 88vh; border-radius: 8px; }
+
+  /* ---------- MENÚ ---------- */
+  #menu { background: var(--surface); max-width: none; }
+  .menu-inner { max-width: 1000px; margin: 0 auto; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 46px; }
+  .tab {
+    border: 1px solid var(--line); background: transparent; color: var(--ink-soft);
+    padding: 9px 24px; border-radius: 30px; cursor: pointer; font-family: 'Jost', sans-serif;
+    font-size: .88rem; letter-spacing: 1.5px; text-transform: uppercase; transition: all .25s;
+  }
+  .tab.active, .tab:hover { background: var(--dark); border-color: var(--dark); color: #fff; }
+  .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 40px; }
+  @media (max-width: 720px) { .menu-grid { grid-template-columns: 1fr; } }
+  .item { display: flex; align-items: baseline; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--bg-alt); }
+  .item-name { font-weight: 500; }
+  .item-desc { color: var(--ink-soft); font-size: .86rem; display: block; }
+  .item-dots { flex: 1; border-bottom: 1px dotted var(--line); transform: translateY(-4px); }
+  .item-price { font-weight: 500; white-space: nowrap; }
+  .menu-loading { text-align: center; color: var(--ink-soft); padding: 40px; }
+
+  /* ---------- CONTACTO / FOOTER ---------- */
+  footer {
+    background: var(--dark); color: #cfcfcf; text-align: center; padding: 60px 20px 40px;
+  }
+  footer h3 { color: #fff; font-size: 1.9rem; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 14px; }
+  footer p { margin: 4px 0; font-size: .95rem; }
+  footer .fine { margin-top: 30px; font-size: .78rem; color: #8f8f8f; letter-spacing: 1px; }
+  .contact-links { display: flex; gap: 28px; justify-content: center; margin-top: 22px; flex-wrap: wrap; }
+  .contact-links a {
+    display: inline-flex; align-items: center; gap: 9px; color: #fff; text-decoration: none;
+    border: 1px solid #5a5a5a; padding: 10px 22px; border-radius: 30px;
+    font-size: .95rem; letter-spacing: 1px; transition: all .3s;
+  }
+  .contact-links a:hover { background: #fff; color: var(--dark); }
+
+  .menu-cat-title {
+    grid-column: 1 / -1; font-family: 'Cormorant Garamond', serif; font-size: 1.5rem;
+    letter-spacing: 3px; text-transform: uppercase; color: var(--ink);
+    margin-top: 26px; padding-bottom: 6px; border-bottom: 1px solid var(--line);
+  }
+  .menu-cat-title:first-child { margin-top: 0; }
+
+  /* ---------- PANEL ADMIN ---------- */
+  #adminOverlay {
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(30,30,30,.45); backdrop-filter: blur(3px);
+  }
+  #adminOverlay.open { display: block; }
+  #adminPanel {
+    position: absolute; top: 0; right: 0; height: 100%; width: min(520px, 100%);
+    background: var(--surface); box-shadow: -10px 0 40px rgba(0,0,0,.2);
+    display: flex; flex-direction: column; animation: slideIn .3s ease;
+  }
+  @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 24px; border-bottom: 1px solid var(--line);
+  }
+  .panel-head h3 { font-size: 1.5rem; letter-spacing: 2px; text-transform: uppercase; }
+  .panel-close { border: none; background: none; font-size: 1.6rem; cursor: pointer; color: var(--ink-soft); }
+  .panel-body { flex: 1; overflow-y: auto; padding: 24px; }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: .8rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 6px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 11px 14px; border: 1px solid var(--line); border-radius: 8px;
+    font-family: 'Jost', sans-serif; font-size: .95rem; background: var(--bg);
+  }
+  .btn {
+    display: inline-block; border: none; background: var(--dark); color: #fff;
+    padding: 11px 26px; border-radius: 30px; cursor: pointer;
+    font-family: 'Jost', sans-serif; letter-spacing: 1.5px; text-transform: uppercase;
+    font-size: .85rem; transition: opacity .2s;
+  }
+  .btn:hover { opacity: .85; }
+  .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+  .btn.danger { background: #b04a4a; }
+  .btn.small { padding: 6px 14px; font-size: .75rem; }
+  .login-error { color: #b04a4a; font-size: .88rem; margin-top: 10px; display: none; }
+
+  .admin-item {
+    border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 12px; background: var(--bg);
+  }
+  .admin-item .row1 { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+  .admin-item .cat { font-size: .72rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-soft); }
+  .admin-item .actions { margin-top: 10px; display: flex; gap: 8px; }
+  .admin-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; align-items: center; }
+  .admin-toolbar input, .admin-toolbar select {
+    padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; font-family: 'Jost', sans-serif;
+  }
+  .muted { color: var(--ink-soft); font-size: .88rem; }
+
+  @media (max-width: 640px) {
+    header { padding: 12px 16px; }
+    nav a { display: none; }
+    .brand { font-size: 1.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Blossom<span>Casa de Té · Resto</span></div>
+  <nav>
+    <a href="#menu">Menú</a>
+    <a href="#galeria">Galería</a>
+    <a href="#contacto">Contacto</a>
+    <button id="btnAdmin" onclick="openAdmin()">Admin</button>
+  </nav>
+</header>
+
+<div class="hero">
+  <h1>Blossom</h1>
+  <div class="divider"></div>
+  <p>Casa de Té &nbsp;·&nbsp; Resto</p>
+  <a class="cta" href="#menu">Ver el menú</a>
+</div>
+
+<section id="menu">
+  <div class="menu-inner">
+    <h2 class="section-title">Menú</h2>
+    <p class="section-sub">Nuestra carta</p>
+    <div class="tabs" id="tabs"></div>
+    <div class="menu-grid" id="menuGrid"><p class="menu-loading">Cargando el menú…</p></div>
+  </div>
+</section>
+
+<section id="galeria">
+  <h2 class="section-title">Galería</h2>
+  <p class="section-sub">Nuestro espacio</p>
+  <div class="gallery" id="galleryGrid"></div>
+</section>
+
+<div id="lightbox" onclick="this.classList.remove('open')"><img id="lightboxImg" src="" alt=""></div>
+
+<footer id="contacto">
+  <h3>Blossom</h3>
+  <p>Casa de Té &amp; Resto</p>
+  <div class="contact-links">
+    <a href="https://wa.me/5491149795173" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.297-.497.1-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      11 4979-5173
+    </a>
+    <a href="https://www.instagram.com/blossom.casadete/" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zm0 10.162a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+      @blossom.casadete
+    </a>
+  </div>
+  <p class="fine">© 2026 Blossom · Todos los derechos reservados</p>
+</footer>
+
+<!-- ============ PANEL ADMIN ============ -->
+<div id="adminOverlay">
+  <div id="adminPanel">
+    <div class="panel-head">
+      <h3 id="panelTitle">Administración</h3>
+      <button class="panel-close" onclick="closeAdmin()">✕</button>
+    </div>
+    <div class="panel-body">
+
+      <!-- Login -->
+      <div id="loginView">
+        <p class="muted" style="margin-bottom:18px">Ingresá con tu usuario de administrador para editar el menú.</p>
+        <div class="field">
+          <label>Usuario</label>
+          <input type="text" id="loginUser" placeholder="Usuario" autocomplete="username">
+        </div>
+        <div class="field">
+          <label>Contraseña</label>
+          <input type="password" id="loginPass" placeholder="Contraseña" autocomplete="current-password">
+        </div>
+        <button class="btn" onclick="doLogin()">Iniciar sesión</button>
+        <p class="login-error" id="loginError"></p>
+      </div>
+
+      <!-- Panel logueado -->
+      <div id="adminView" style="display:none">
+        <div class="admin-toolbar">
+          <select id="filterCat"><option value="">Todas las categorías</option></select>
+          <input type="text" id="searchBox" placeholder="Buscar producto…" oninput="renderAdminList()">
+          <button class="btn small" onclick="showNewForm()">+ Agregar producto</button>
+          <button class="btn small ghost" onclick="doLogout()">Salir</button>
+        </div>
+
+        <!-- Formulario alta/edición -->
+        <div id="editForm" style="display:none; border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:18px;">
+          <input type="hidden" id="editId">
+          <div class="field"><label>Nombre</label><input type="text" id="editName"></div>
+          <div class="field"><label>Descripción (opcional)</label><input type="text" id="editDesc"></div>
+          <div class="field"><label>Categoría</label><input type="text" id="editCat" list="catList"><datalist id="catList"></datalist></div>
+          <div class="field"><label>Precio</label><input type="number" id="editPrice" min="0" step="50"></div>
+          <button class="btn" onclick="saveItem()">Guardar</button>
+          <button class="btn ghost" onclick="hideForm()">Cancelar</button>
+        </div>
+
+        <div id="adminList"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="images.js"></script>
+<script>
+/* ================= GALERÍA ================= */
+(function renderGallery(){
+  const grid = document.getElementById('galleryGrid');
+  if (!GALLERY_IMAGES.length) {
+    grid.innerHTML = '<div class="gallery-empty">Pronto vas a poder ver fotos de nuestro espacio ❀</div>';
+    return;
+  }
+  grid.innerHTML = GALLERY_IMAGES.map(src =>
+    `<img src="${src}" alt="Blossom" loading="lazy" onclick="openLightbox('${src}')">`
+  ).join('');
+})();
+function openLightbox(src){
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+
+/* ================= MENÚ (Firestore) ================= */
+let PRODUCTS = [];
+let ACTIVE_CAT = null;
+
+// Las categorías de la base se agrupan en pestañas más compactas
+const CATEGORY_GROUPS = [
+  { name: "Panadería",         cats: ["Panadería"] },
+  { name: "Dulces",            cats: ["Tentaciones", "Tortas", "Budines", "Cookies & Masitas"] },
+  { name: "Salados",           cats: ["Salado", "Tostados", "Focaccias"] },
+  { name: "Platos",            cats: ["Platos"] },
+  { name: "Para compartir",    cats: ["Para compartir"] },
+  { name: "Cafetería",         cats: ["Cafés", "Especiales", "Desayunos", "Adicionales"] },
+  { name: "Tés & Infusiones",  cats: ["Tés & Blends", "Infusiones"] },
+  { name: "Bebidas & Tragos",  cats: ["Bebidas", "Tragos"] },
+];
+
+function money(n){ return '$' + Number(n).toLocaleString('es-AR'); }
+
+function listenProducts(){
+  db.collection('products').onSnapshot(snap => {
+    PRODUCTS = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    PRODUCTS.sort((a,b) => (a.order ?? 999) - (b.order ?? 999) || a.name.localeCompare(b.name));
+    renderTabs();
+    renderMenu();
+    if (auth.currentUser) renderAdminList();
+  }, err => {
+    document.getElementById('menuGrid').innerHTML =
+      '<p class="menu-loading">No se pudo cargar el menú. Verificá la configuración de Firebase.</p>';
+    console.error(err);
+  });
+}
+
+function categories(){
+  const seen = [];
+  PRODUCTS.forEach(p => { if (p.category && !seen.includes(p.category)) seen.push(p.category); });
+  return seen;
+}
+
+// Grupos visibles: los definidos (si tienen productos) + categorías nuevas no contempladas
+function visibleGroups(){
+  const cats = categories();
+  const mapped = CATEGORY_GROUPS.flatMap(g => g.cats);
+  const groups = CATEGORY_GROUPS
+    .map(g => ({ ...g, cats: g.cats.filter(c => cats.includes(c)) }))
+    .filter(g => g.cats.length);
+  cats.filter(c => !mapped.includes(c)).forEach(c => groups.push({ name: c, cats: [c] }));
+  return groups;
+}
+
+function renderTabs(){
+  const cats = categories();
+  if (!cats.length) return;
+  const groups = visibleGroups();
+  if (!ACTIVE_CAT || !groups.some(g => g.name === ACTIVE_CAT)) ACTIVE_CAT = groups[0].name;
+  document.getElementById('tabs').innerHTML = groups.map(g =>
+    `<button class="tab ${g.name===ACTIVE_CAT?'active':''}" onclick="setCat('${g.name.replace(/'/g,"\\'")}')">${g.name}</button>`
+  ).join('');
+  // filtro y datalist del admin (categorías reales, no agrupadas)
+  document.getElementById('filterCat').innerHTML =
+    '<option value="">Todas las categorías</option>' + cats.map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('catList').innerHTML = cats.map(c=>`<option value="${c}">`).join('');
+}
+function setCat(c){ ACTIVE_CAT = c; renderTabs(); renderMenu(); }
+
+function renderMenu(){
+  const grid = document.getElementById('menuGrid');
+  if (!PRODUCTS.length) {
+    grid.innerHTML = '<p class="menu-loading">El menú se está preparando ❀</p>';
+    return;
+  }
+  const group = visibleGroups().find(g => g.name === ACTIVE_CAT);
+  if (!group) return;
+  grid.innerHTML = group.cats.map(cat => {
+    const items = PRODUCTS.filter(p => p.category === cat);
+    const heading = group.cats.length > 1 ? `<div class="menu-cat-title">${cat}</div>` : '';
+    return heading + items.map(p => `
+      <div class="item">
+        <div><span class="item-name">${p.name}</span>${p.description ? `<span class="item-desc">${p.description}</span>` : ''}</div>
+        <div class="item-dots"></div>
+        <div class="item-price">${money(p.price)}</div>
+      </div>`).join('');
+  }).join('');
+}
+
+/* ================= ADMIN ================= */
+function openAdmin(){ document.getElementById('adminOverlay').classList.add('open'); }
+function closeAdmin(){ document.getElementById('adminOverlay').classList.remove('open'); }
+document.getElementById('adminOverlay').addEventListener('click', e => {
+  if (e.target.id === 'adminOverlay') closeAdmin();
+});
+
+function doLogin(){
+  const user = document.getElementById('loginUser').value;
+  const pass = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  if (!user || !pass) { errEl.textContent = 'Completá usuario y contraseña.'; errEl.style.display = 'block'; return; }
+  auth.signInWithEmailAndPassword(usernameToEmail(user), pass)
+    .catch(() => { errEl.textContent = 'Usuario o contraseña incorrectos.'; errEl.style.display = 'block'; });
+}
+function doLogout(){ auth.signOut(); }
+
+auth.onAuthStateChanged(u => {
+  document.getElementById('loginView').style.display = u ? 'none' : 'block';
+  document.getElementById('adminView').style.display = u ? 'block' : 'none';
+  document.getElementById('panelTitle').textContent = u ? 'Editar menú' : 'Administración';
+  if (u) renderAdminList();
+});
+
+document.getElementById('filterCat').addEventListener('change', renderAdminList);
+
+function renderAdminList(){
+  const q = (document.getElementById('searchBox').value || '').toLowerCase();
+  const cat = document.getElementById('filterCat').value;
+  const list = PRODUCTS.filter(p =>
+    (!cat || p.category === cat) &&
+    (!q || p.name.toLowerCase().includes(q))
+  );
+  document.getElementById('adminList').innerHTML = list.length ? list.map(p => `
+    <div class="admin-item">
+      <div class="row1">
+        <div><div class="cat">${p.category || ''}</div><strong>${p.name}</strong>
+        ${p.description ? `<div class="muted">${p.description}</div>` : ''}</div>
+        <strong>${money(p.price)}</strong>
+      </div>
+      <div class="actions">
+        <button class="btn small ghost" onclick="editItem('${p.id}')">Editar</button>
+        <button class="btn small danger" onclick="deleteItem('${p.id}', '${p.name.replace(/'/g,"\\'")}')">Eliminar</button>
+      </div>
+    </div>`).join('') : '<p class="muted">No hay productos para mostrar.</p>';
+}
+
+function showNewForm(){
+  document.getElementById('editId').value = '';
+  ['editName','editDesc','editCat','editPrice'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('editForm').style.display = 'block';
+  document.getElementById('editName').focus();
+}
+function editItem(id){
+  const p = PRODUCTS.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('editId').value = id;
+  document.getElementById('editName').value = p.name || '';
+  document.getElementById('editDesc').value = p.description || '';
+  document.getElementById('editCat').value = p.category || '';
+  document.getElementById('editPrice').value = p.price ?? '';
+  document.getElementById('editForm').style.display = 'block';
+  document.getElementById('editForm').scrollIntoView({behavior:'smooth'});
+}
+function hideForm(){ document.getElementById('editForm').style.display = 'none'; }
+
+function saveItem(){
+  const id = document.getElementById('editId').value;
+  const data = {
+    name: document.getElementById('editName').value.trim(),
+    description: document.getElementById('editDesc').value.trim(),
+    category: document.getElementById('editCat').value.trim(),
+    price: Number(document.getElementById('editPrice').value)
+  };
+  if (!data.name || !data.category || isNaN(data.price)) {
+    alert('Completá nombre, categoría y precio.'); return;
+  }
+  const op = id ? db.collection('products').doc(id).update(data)
+               : db.collection('products').add({ ...data, order: 999 });
+  op.then(hideForm).catch(e => alert('Error al guardar: ' + e.message));
+}
+
+function deleteItem(id, name){
+  if (!confirm(`¿Eliminar "${name}" del menú?`)) return;
+  db.collection('products').doc(id).delete().catch(e => alert('Error: ' + e.message));
+}
+
+/* Enter para loguear */
+document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+listenProducts();
+</script>
+</body>
+</html>
